@@ -517,11 +517,12 @@ def graph4(dataset_venda_liq, dataset_metas_codusur, data_atual):
         xaxis=dict(range=[0, 100]),  # Definindo o intervalo do eixo x de 0 a 100%
         height=600,
         template=template_theme,
-        margin=dict(t=50, b=10, l=40, r = 40),
+        margin=dict(t=50, b=10, l=150, r = 40),
         yaxis=dict(
             tickfont=dict(
-                size=25,
-                family='Arial'
+                size=45,
+                family='Calibri',
+                weight='bold'
             )  
         )
     )
