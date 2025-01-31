@@ -352,20 +352,20 @@ def graph3(dataset_venda_liq, data_atual, meta_semana, meta_sabado):
     df3 = pd.DataFrame.from_dict(dataset_venda_liq).reset_index()
     df3['DATA'] = pd.to_datetime(df3['DATA'], errors='coerce')
     df_hoje = df3[df3['DATA'].dt.date == data_atual]
-
- 
+    
+    df_sabado_exceto_hoje = df3[df3['DATA'].isin(sabados_exceto_hoje)]
+    sabados_restantes = calcular_sabados(data_atual, final, feriados)
+    total_vendas_sabados_exceto_hoje = df_sabado_exceto_hoje['VENDA_LIQ'].sum()
+    
     if data_atual.weekday() == 5:
-        df_sabado_exceto_hoje = df3[df3['DATA'].isin(sabados_exceto_hoje)]
-        sabados_restantes = calcular_sabados(data_atual, final, feriados)
-        total_vendas_sabados_exceto_hoje = df_sabado_exceto_hoje['VENDA_LIQ'].sum()
-        meta_hoje = (meta_sabado - total_vendas_sabados_exceto_hoje) / sabados_restantes
-              
+        meta_hoje = (meta_sabado - total_vendas_sabados_exceto_hoje) / sabados_restantes         
     else:
         df_dias_uteis_exceto_hoje = df3[~df3['CODUSUR'].isin(rca_nao_controla)]
         df_dias_uteis_exceto_hoje = df3[df3['DATA'].isin(datas_exceto_hoje)]
         dias_uteis_restantes = calcular_dias_uteis(data_atual, final, feriados)
         total_vendas_dias_uteis_ate_ontem = df_dias_uteis_exceto_hoje['VENDA_LIQ'].sum()
-        meta_hoje = (meta_semana - total_vendas_dias_uteis_ate_ontem) / dias_uteis_restantes
+        meta_hoje = (meta_semana+meta_sabado - (total_vendas_dias_uteis_ate_ontem + total_vendas_sabados_exceto_hoje)) / dias_uteis_restantes
+    
     
     total_vendas_hoje = df_hoje['VENDA_LIQ'].sum()
     perc_atingido_hoje = (total_vendas_hoje/meta_hoje)*100
