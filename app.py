@@ -436,7 +436,9 @@ def graph4(dataset_venda_liq, dataset_metas_codusur, data_atual):
         df_sabado_exceto_hoje = df4[df4['DATA'].isin(sabados_exceto_hoje)]
         
         # Calcula os sábados restantes no mês a partir da data atual
+        sabados_mes = calcular_sabados(inicial, final, feriados)
         sabados_restantes = calcular_sabados(data_atual, final, feriados)
+
         
         # Calcula a venda líquida acumulada por CODUSUR nos sábados anteriores
         df_total_vendas_sabados_exceto_hoje = df_sabado_exceto_hoje.groupby('CODUSUR', as_index=False)['VENDA_LIQ'].sum()
@@ -459,11 +461,14 @@ def graph4(dataset_venda_liq, dataset_metas_codusur, data_atual):
 
         
         df_meta_hoje.fillna(0, inplace=True)  # Substituir valores nulos por 0
-        df_meta_hoje['META_HOJE']= (df_meta_hoje['META_SABADO']-df_meta_hoje['VENDA_LIQ_MERGE'])/sabados_restantes
-        df_meta_hoje['PERC_ATINGIDO'] = (df_meta_hoje['VENDA_LIQ_HOJE'] / df_meta_hoje['META_HOJE']) * 100
+        df_meta_hoje['META_HOJE'] = df_meta_hoje.apply(
+            lambda row: row['META_SABADO']/sabados_mes if (row['META_SABADO'] - row['VENDA_LIQ_MERGE']) < 0 
+            else (row['META_SABADO'] - row['VENDA_LIQ_MERGE']) / sabados_restantes, axis=1
+            )
 
               
     else:
+        dias_uteis_mes = calcular_dias_uteis(inicial, final, feriados)
         df_dias_uteis_exceto_hoje = df4[df4['DATA'].isin(datas_exceto_hoje)]
         dias_uteis_restantes = calcular_dias_uteis(data_atual, final, feriados)
         df_total_vendas_dias_uteis_exceto_hoje = df_dias_uteis_exceto_hoje.groupby('CODUSUR', as_index=False)['VENDA_LIQ'].sum()
@@ -477,12 +482,17 @@ def graph4(dataset_venda_liq, dataset_metas_codusur, data_atual):
             df_merged.reset_index()
 
         else:
-            df_merged['META_HOJE'] = (df_merged['META_SEMANA']-df_merged['VENDA_LIQ'])/dias_uteis_restantes
+            df_merged['META_HOJE'] = df_merged.apply(
+                lambda row: row['META_SEMANA']/dias_uteis_mes if (row['META_SEMANA'] - row['VENDA_LIQ']) < 0 
+                else (row['META_SEMANA'] - row['VENDA_LIQ']) / dias_uteis_restantes, axis=1
+            )
         
         df_merged = pd.merge(df_merged, df_hoje, on='CODUSUR', suffixes=('_MERGE', '_HOJE'), how='left')
         df_meta_hoje = df_merged.drop(['DATA'], axis=1)
         df_meta_hoje['PERC_ATINGIDO'] = (df_meta_hoje['VENDA_LIQ_HOJE']/df_meta_hoje['META_HOJE'])*100
         df_meta_hoje = df_meta_hoje.dropna(subset=['CODUSUR', 'PERC_ATINGIDO'])
+        
+        
         cores_barras = [
                 'blue' if perc < 80 else 
                 'blue' if 80 <= perc < 100 else 
@@ -498,13 +508,14 @@ def graph4(dataset_venda_liq, dataset_metas_codusur, data_atual):
         orientation='h',                  # Orientação horizontal
         text=[f'{p:.2f}%' for p in df_meta_hoje['PERC_ATINGIDO']],  # Exibir o percentual com 2 casas decimais
         textfont=dict(
-            size=16,
+            size=22,
             family='Arial'
         ),
             marker=dict(
                 color=cores_barras  # Cor das barras
             ),
         textposition='auto', # Posição do texto
+        insidetextanchor = 'start',  # Ancoragem do texto
         width=0.8  
     ))
 
@@ -517,13 +528,15 @@ def graph4(dataset_venda_liq, dataset_metas_codusur, data_atual):
         xaxis=dict(range=[0, 100]),  # Definindo o intervalo do eixo x de 0 a 100%
         height=600,
         template=template_theme,
-        margin=dict(t=50, b=10, l=150, r = 40),
+        margin=dict(t=50, b=10, l= 80, r = 40),
+        
         yaxis=dict(
             tickfont=dict(
                 size=45,
                 family='Calibri',
                 weight='bold'
-            )  
+            ),
+            ticklabelposition="outside left"  # Move os rótulos para fora e à esquerda
         )
     )
 
