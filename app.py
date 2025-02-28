@@ -337,13 +337,15 @@ def graph3(dataset_venda_liq, data_atual, meta_semana, meta_sabado):
         raise PreventUpdate
     
     data_atual = datetime.fromisoformat(data_atual).date()
+
     inicial = data_atual.replace(day=1)
     proximo_mes = (inicial + timedelta(days=31)).replace(day=1)   
     final = proximo_mes - timedelta(days=1)
     ontem = data_atual - timedelta(days=1)
+    dias_uteis_mes = calcular_dias_uteis(inicial, final, feriados)
+    sabados_uteis_mes = calcular_sabados(inicial, final, feriados)
     
 
-    
     # Gerar um intervalo de datas
     datas = pd.date_range(start=inicial, end=ontem, freq='D')
     datas_exceto_hoje = pd.date_range(start=inicial, end=ontem, freq='B')
@@ -358,17 +360,29 @@ def graph3(dataset_venda_liq, data_atual, meta_semana, meta_sabado):
     total_vendas_sabados_exceto_hoje = df_sabado_exceto_hoje['VENDA_LIQ'].sum()
     
     if data_atual.weekday() == 5:
-        meta_hoje = (meta_sabado - total_vendas_sabados_exceto_hoje) / sabados_restantes         
+        if (meta_sabado - total_vendas_sabados_exceto_hoje) < 0:
+            meta_hoje = meta_sabado/sabados_uteis_mes
+        else:
+            meta_hoje = (meta_sabado - total_vendas_sabados_exceto_hoje) / sabados_restantes      
     else:
         df_dias_uteis_exceto_hoje = df3[~df3['CODUSUR'].isin(rca_nao_controla)]
         df_dias_uteis_exceto_hoje = df3[df3['DATA'].isin(datas_exceto_hoje)]
         dias_uteis_restantes = calcular_dias_uteis(data_atual, final, feriados)
         total_vendas_dias_uteis_ate_ontem = df_dias_uteis_exceto_hoje['VENDA_LIQ'].sum()
-        meta_hoje = (meta_semana+meta_sabado - (total_vendas_dias_uteis_ate_ontem + total_vendas_sabados_exceto_hoje)) / dias_uteis_restantes
+        if meta_semana+meta_sabado - (total_vendas_dias_uteis_ate_ontem + total_vendas_sabados_exceto_hoje) < 0:
+            meta_hoje = meta_semana/dias_uteis_mes
+        else:
+            meta_hoje = (meta_semana+meta_sabado - (total_vendas_dias_uteis_ate_ontem + total_vendas_sabados_exceto_hoje)) / dias_uteis_restantes
+    
     
     
     total_vendas_hoje = df_hoje['VENDA_LIQ'].sum()
     perc_atingido_hoje = (total_vendas_hoje/meta_hoje)*100
+    
+    if perc_atingido_hoje >100:
+        range_final = perc_atingido_hoje * 1.1
+    else:
+        range_final = 100
     
     fig3 = go.Figure(go.Indicator(
         mode="gauge+number",
