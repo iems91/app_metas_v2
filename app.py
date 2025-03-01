@@ -26,20 +26,6 @@ cache = Cache(app.server, config={
     'CACHE_DEFAULT_TIMEOUT': 300
 })
 
-
-# df_vendas = processar_dados(query_vendas)
-
-# # Extraindo os anos únicos da coluna 'DATA' do df_vendas
-# anos_vendas = df_vendas['DATA'].dt.year.unique()
-# opcoes_anos = [{'label': str(ano), 'value': ano} for ano in sorted(anos_vendas, reverse=True)]
-
-# meses_vendas = df_vendas['DATA'].dt.month.unique()
-# opcoes_meses = [{'label': str(mes), 'value': mes} for mes in sorted(meses_vendas, reverse=True)]
-
-# # Adicionar a opção "Todos" no dropdown
-# opcoes_anos.insert(0, {'label': 'Todos', 'value': 'Todos'})
-# opcoes_meses.insert(0, {'label': 'Todos', 'value': 'Todos'})
-
 app.layout = html.Div([
     dbc.Container([
         dcc.Store(id='dataset_venda_liq', data={}),
@@ -55,27 +41,7 @@ app.layout = html.Div([
             dbc.Col([
                 dbc.Card(
                     dbc.CardBody([
-                        # dbc.Row([
-                        #     dbc.Col([
-                        #         dcc.Dropdown(
-                        #             id='dropdown-ano',
-                        #             options=opcoes_anos,
-                        #             value='Todos',  # Valor padrão
-                        #             clearable=False,
-                        #             style={'width': '100%', 'color': 'black'}
-                        #         )
-                        #     ], sm=12, md=6),
-                        #     dbc.Col([
-                        #         dcc.Dropdown(
-                        #             id='dropdown-mes',
-                        #             options=opcoes_meses,
-                        #             value='Todos',  # Valor padrão
-                        #             clearable=False,
-                        #             style={'width': '100%', 'color': 'black'}
-                        #         )
-                        #     ], sm=12, md=6)
-                        # ],className='g-2 my-auto', style={'margin-top': '7px'}),
-                        dbc.Row([
+                         dbc.Row([
                             dbc.Col([
                                 dcc.Graph(id='graph1', className='dbc', config=config_graph)
                             ], sm=12, md=4),
@@ -437,7 +403,7 @@ def graph4(dataset_venda_liq, dataset_metas_codusur, data_atual):
     # Gerar um intervalo de datas
     datas = pd.date_range(start=inicial, end=data_atual, freq='D')
     datas_exceto_hoje = pd.date_range(start=inicial, end=ontem, freq='B')
-    sabados_exceto_hoje = datas[datas.weekday == 5]
+    sabados_exceto_hoje = datas_exceto_hoje[datas_exceto_hoje.weekday == 5]
 
     df4 = pd.DataFrame.from_dict(dataset_venda_liq).reset_index()
     df4['DATA'] = pd.to_datetime(df4['DATA'], errors='coerce')
@@ -446,6 +412,8 @@ def graph4(dataset_venda_liq, dataset_metas_codusur, data_atual):
 
     
     if data_atual.weekday() == 5:  # Se for sábado
+        
+        
         # Filtra as vendas dos sábados anteriores (exceto o sábado atual)
         df_sabado_exceto_hoje = df4[df4['DATA'].isin(sabados_exceto_hoje)]
         
@@ -501,19 +469,20 @@ def graph4(dataset_venda_liq, dataset_metas_codusur, data_atual):
                 else (row['META_SEMANA'] - row['VENDA_LIQ']) / dias_uteis_restantes, axis=1
             )
         
-        df_merged = pd.merge(df_merged, df_hoje, on='CODUSUR', suffixes=('_MERGE', '_HOJE'), how='left')
-        df_meta_hoje = df_merged.drop(['DATA'], axis=1)
-        df_meta_hoje['PERC_ATINGIDO'] = (df_meta_hoje['VENDA_LIQ_HOJE']/df_meta_hoje['META_HOJE'])*100
-        df_meta_hoje = df_meta_hoje.dropna(subset=['CODUSUR', 'PERC_ATINGIDO'])
+        df_merged = pd.merge(df_merged, df_hoje, on='CODUSUR', how='left')
+        df_meta_hoje = df_merged.drop(['DATA_x'], axis=1)
+    
+    df_meta_hoje['PERC_ATINGIDO'] = (df_meta_hoje['VENDA_LIQ_HOJE']/df_meta_hoje['META_HOJE'])*100
+    df_meta_hoje = df_meta_hoje.dropna(subset=['CODUSUR', 'PERC_ATINGIDO'])
         
         
-        cores_barras = [
-                'blue' if perc < 80 else 
-                'blue' if 80 <= perc < 100 else 
-                'blue' if 100 <= perc < 120 else 
-                'blue'
-                for perc in df_meta_hoje['PERC_ATINGIDO']
-            ]
+    cores_barras = [
+            'blue' if perc < 80 else 
+            'blue' if 80 <= perc < 100 else 
+            'blue' if 100 <= perc < 120 else 
+            'blue'
+            for perc in df_meta_hoje['PERC_ATINGIDO']
+        ]
 
 
     fig4 = go.Figure(go.Bar(
