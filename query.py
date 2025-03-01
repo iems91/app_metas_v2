@@ -7,6 +7,7 @@ query_vendas ="""
         view_vendas_resumo_faturamento v
     where 
         condvenda = 1
+        and codsupervisor = 1
         and dtcancel is null
     group by 
         v.codusur, v.dtsaida
@@ -20,6 +21,7 @@ query_devol ="""
     where 
         condvenda = 1
         and dtcancel is null
+        and codsupervisor = 1
     group by 
         d.codusur, d.dtent
 """
@@ -29,6 +31,8 @@ query_devol_avulsa = """
         a.CODUSUR, trunc(a.dtent) DATA, sum(a.vldevolucao) VALOR
     from 
         view_devol_resumo_faturavulsa a
+    where
+        codsupervisor = 1
     group by 
         a.codusur, a.dtent 
 """
