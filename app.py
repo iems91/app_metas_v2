@@ -469,8 +469,9 @@ def graph4(dataset_venda_liq, dataset_metas_codusur, data_atual):
                 else (row['META_SEMANA'] - row['VENDA_LIQ']) / dias_uteis_restantes, axis=1
             )
         
-        df_merged = pd.merge(df_merged, df_hoje, on='CODUSUR', how='left')
-        df_meta_hoje = df_merged.drop(['DATA_x'], axis=1)
+
+        df_merged = pd.merge(df_merged, df_hoje, on='CODUSUR', how='left', suffixes=('_MERGE', '_HOJE'))
+        df_meta_hoje = df_merged.copy()
     
     df_meta_hoje['PERC_ATINGIDO'] = (df_meta_hoje['VENDA_LIQ_HOJE']/df_meta_hoje['META_HOJE'])*100
     df_meta_hoje = df_meta_hoje.dropna(subset=['CODUSUR', 'PERC_ATINGIDO'])
